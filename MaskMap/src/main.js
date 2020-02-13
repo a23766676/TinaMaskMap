@@ -3,7 +3,7 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import { library } from '@fortawesome/fontawesome-svg-core'
-import {faExclamationTriangle, faSearch ,faMapMarker} from '@fortawesome/fontawesome-free-solid'
+import {faExclamationTriangle, faSearch ,faMapMarker,faUndoAlt} from '@fortawesome/fontawesome-free-solid'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import axios from 'axios'
 import VueAxios from 'vue-axios'
@@ -11,6 +11,7 @@ import VueAxios from 'vue-axios'
 library.add(faExclamationTriangle)
 library.add(faSearch)
 library.add(faMapMarker)
+library.add(faUndoAlt)
 
 Vue.component('font-awesome-icon', FontAwesomeIcon)
 

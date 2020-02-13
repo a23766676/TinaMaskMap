@@ -12,7 +12,7 @@
         <p class="content infoWindow">{{store.properties.phone}}</p>
       </a>
     </div>
-    <div class="update">更新時間：{{store.properties.updated}}</div>
+    <div class="update color_gray">更新時間：{{store.properties.updated}}</div>
     <div class="mask-container">
       <div class="title color_blue">成人口罩 {{store.properties.mask_adult}}</div>
       <div class="title color_green">兒童口罩 {{store.properties.mask_child}}</div>

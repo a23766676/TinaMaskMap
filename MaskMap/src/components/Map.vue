@@ -1,5 +1,7 @@
 <template>
   <div class="map" id="map">
+    <font-awesome-icon class="color_gray back icon" icon="undo-alt" @click="goBackCurrentPoint"></font-awesome-icon>
+    <div id="LocateButton"></div>
     <div>
       <div class></div>
     </div>
@@ -21,8 +23,6 @@ const _symbolFile = {
 const _options = {
   url: "https://js.arcgis.com/3.31/"
 };
-var _graphicLayers = null;
-
 var _graphicLayerSetting = {
   storesGraphicLayer: { layer: null, index: 1 },
   currentPositionGraphicLayer: {
@@ -30,155 +30,209 @@ var _graphicLayerSetting = {
     index: 2
   }
 };
-var _map=null;
 export default {
-  props: ["stores", "storeId"],
+  props: ["stores", "storeId", "searchPoint"],
+  data: () => {
+    return {
+      graphics: [],
+      map: null,
+      screenUtils: null,
+      graphicLayers: null
+    };
+  },
   watch: {
+    searchPoint: function(point) {
+      if (point[0] && point[1]) {
+        var graphicLayer = this.graphicLayers.currentPositionGraphicLayer;
+        graphicLayer.clear();
+        addPointGraphic(this.map, "current", point, graphicLayer);
+        this.map.centerAndZoom(point, 17);
+      }else{
+        alert('很抱歉，我們搜尋不到相關資料！');
+      }
+    },
     storeId: function(id) {
-      var store = this.stores.find(function(store){
-        return store.properties.id===id;
-      })
-      debugger
-       openInfoWindow(_map, graphic, evt.screenPoint, store.geometry);
+      var map = this.map;
+      var graphic = this.graphics.find(function(graphic) {
+        return graphic.attributes.properties.id === id;
+      });
+      var screenPoint = this.screenUtils.toScreenPoint(
+        map.extent,
+        map.width,
+        map.height,
+        graphic.geometry
+      );
+      openInfoWindow(map, graphic, screenPoint, graphic.geometry);
     },
     stores: function(result) {
+      var vue = this;
+      vue.graphics = [];
+      var graphicLayer = vue.graphicLayers.storesGraphicLayer;
+      graphicLayer.clear();
       result.forEach(function(store) {
         var type = getType(parseInt(store.properties.mask_adult));
-        addPositioningPattern(_map, type, store.geometry.coordinates).then(
-          function(graphic) {
-            graphic.attributes = store;
-          }
-        );
+        addPointGraphic(
+          map,
+          type,
+          store.geometry.coordinates,
+          graphicLayer
+        ).then(function(graphic) {
+          graphic.attributes = store;
+          vue.graphics.push(graphic);
+        });
       });
     }
   },
+  methods: {},
+  created() {
+    esriLoader
+      .loadModules(
+        [
+          "esri/map",
+          "esri/layers/WebTiledLayer",
+          "esri/layers/GraphicsLayer",
+          "esri/geometry/screenUtils",
+          "esri/dijit/LocateButton"
+        ],
+        _options
+      )
+      .then(
+        ([Map, WebTiledLayer, GraphicsLayer, screenUtils, LocateButton]) => {
+          this.map = new Map("map", {
+            center: [121.525, 25.0392],
+            basemap: "gray",
+            logo: false,
+            fadeOnZoom: true,
+            minZoom: 7,
+            maxZoom: 18
+          });
+          this.initBasemap(this.map, WebTiledLayer);
+          this.graphicLayers = this.slimGraphicLayers(
+            _graphicLayerSetting,
+            GraphicsLayer
+          );
+          this.addGraphicLayersToMap(this.map, _graphicLayerSetting);
+          this.addGraphicLayersEvent(this.map, this.graphicLayers);
+          this.addEventListener(this);
+          this.screenUtils = screenUtils;
+          var vue = this;
+          var graphicLayer = this.graphicLayers.currentPositionGraphicLayer;
+          addCurrentPoint(vue.map, graphicLayer, LocateButton);
+        },
+        reason => {
+          console.log(reason);
+        }
+      );
+  },
+  mounted() {},
   methods: {
     getType: getType,
-    addPositioningPattern: addPositioningPattern
-  },
-  mounted() {
-    // preload the ArcGIS API
-    var vue = this;
-
-    var getCenter = async function() {
-      const defer = Deferred();
-      var center = [];
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          function(position) {
-            center = [position.coords.longitude, position.coords.latitude];
-            defer.resolve(center);
-          },
-          function(e) {
-            debugger;
-          },
-          {
-            enableHighAcuracy: true
-          }
-        );
-      } else {
-        center = [121.525, 25.0392];
-        defer.resolve(center);
-      }
-      return defer.promise;
-    };
-
-    getCenter().then(function(center) {
-      esriLoader
-        .loadModules(
-          [
-            "esri/map",
-            "esri/layers/WebTiledLayer",
-            "esri/layers/GraphicsLayer",
-            "esri/geometry/screenUtils"
-          ],
-          _options
-        )
-        .then(
-          ([Map, WebTiledLayer, GraphicsLayer, screenUtils]) => {
-            _map = new Map("map", {
-              center: center,
-              basemap: "gray",
-              logo: false,
-              fadeOnZoom: true
-            });
-            initBasemap(_map);
-            _graphicLayers = slimGraphicLayers(_graphicLayerSetting);
-            // initGraphicLayers(_graphicLayerSetting);
-            addGraphicLayersToMap(_map, _graphicLayerSetting);
-            addGraphicLayersEvent(_map, _graphicLayers);
-            addPositioningPattern(_map, "current", center);
-            addEventListener(vue, _map);
-            function addEventListener(vue, map) {
-              map.on("extent-change", function(data) {
-                vue.$emit("callback", data.extent);
-              });
-              _graphicLayers.storesGraphicLayer.on("click", function(evt) {
-                var graphic = evt.graphic;
-                var mapPoint = screenUtils.toMapPoint(
-                  map.extent,
-                  map.width,
-                  map.height,
-                  evt.screenPoint
-                );
-                openInfoWindow(map, graphic, evt.screenPoint, mapPoint);
-              });
-            }
-
-            function initBasemap(map) {
-              map.setLevel(19);
-              var layer = new WebTiledLayer(
-                "https://wmts.nlsc.gov.tw/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=EMAP&STYLE=_null&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{level}&TILEROW={row}&TILECOL={col}&FORMAT=image/png"
-              );
-              map.addLayer(layer);
-            }
-
-            function addGraphicLayersToMap(map, graphicLayerSetting) {
-              var layerSort = orderByGraphicLayersByIndex(graphicLayerSetting);
-              layerSort.forEach(function(item) {
-                var graphicLayer = graphicLayerSetting[item.name];
-                map.addLayer(graphicLayer.layer, graphicLayer.index);
-              });
-            }
-            function addGraphicLayersEvent(map, graphicLayers) {
-              graphicLayers.storesGraphicLayer.on("mouse-over", function() {
-                map.setMapCursor("pointer");
-              });
-              graphicLayers.storesGraphicLayer.on("mouse-out", function() {
-                map.setMapCursor("default");
-              });
-            }
-            function slimGraphicLayers(graphicLayerSetting) {
-              var result = {};
-              for (var prop in graphicLayerSetting) {
-                graphicLayerSetting[prop].layer = new GraphicsLayer();
-                result[prop] = graphicLayerSetting[prop].layer;
-              }
-
-              return result;
-            }
-            function orderByGraphicLayersByIndex(graphicLayerSetting) {
-              var result = [];
-              for (var prop in graphicLayerSetting) {
-                result.push({
-                  name: prop,
-                  index: graphicLayerSetting[prop].index
-                });
-              }
-              result.sort(function(a, b) {
-                return a.index - b.index;
-              });
-
-              return result;
-            }
-          },
-          reason => {
-            console.log(reason);
-          }
-        );
-    });
+    addPointGraphic: addPointGraphic,
+    addCurrentPoint: addCurrentPoint,
+    initBasemap: initBasemap,
+    slimGraphicLayers: slimGraphicLayers,
+    addGraphicLayersToMap: addGraphicLayersToMap,
+    addGraphicLayersEvent: addGraphicLayersEvent,
+    addEventListener: addEventListener,
+    orderByGraphicLayersByIndex: orderByGraphicLayersByIndex,
+    goBackCurrentPoint: function() {
+      var graphicLayer = this.graphicLayers.currentPositionGraphicLayer;
+      addCurrentPoint(this.map, graphicLayer);
+    }
   }
 };
+
+function addCurrentPoint(map, graphicLayer, LocateButton) {
+  // var geoLocate = new LocateButton(
+  //   {
+  //     map: map
+  //   },
+  //   "LocateButton"
+  // );
+  // geoLocate.startup();
+  // geoLocate.on("load", function() {
+  //   geoLocate.locate();
+  // });
+  graphicLayer.clear();
+  if (navigator.geolocation) {
+    // timeout at 60000 milliseconds (60 seconds)
+    var options = { timeout: 60000, enableHighAcuracy: true };
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        var center = [position.coords.longitude, position.coords.latitude];
+        map.centerAndZoom(center, 17);
+        addPointGraphic(map, "current", center, graphicLayer);
+      },
+      function(e) {
+        console.log(e.message);
+      },
+      options
+    );
+  }
+}
+function initBasemap(map, WebTiledLayer) {
+  map.setLevel(15);
+  var layer = new WebTiledLayer(
+    "https://wmts.nlsc.gov.tw/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=EMAP&STYLE=_null&TILEMATRIXSET=EPSG:3857&TILEMATRIX=EPSG:3857:{level}&TILEROW={row}&TILECOL={col}&FORMAT=image/png"
+  );
+  map.addLayer(layer);
+}
+function slimGraphicLayers(graphicLayerSetting, GraphicsLayer) {
+  var result = {};
+  for (var prop in graphicLayerSetting) {
+    graphicLayerSetting[prop].layer = new GraphicsLayer();
+    result[prop] = graphicLayerSetting[prop].layer;
+  }
+
+  return result;
+}
+function addGraphicLayersToMap(map, graphicLayerSetting) {
+  var layerSort = this.orderByGraphicLayersByIndex(graphicLayerSetting);
+  layerSort.forEach(function(item) {
+    var graphicLayer = graphicLayerSetting[item.name];
+    map.addLayer(graphicLayer.layer, graphicLayer.index);
+  });
+}
+function addEventListener(vue) {
+  var map = vue.map;
+  map.on("extent-change", function(data) {
+    vue.$emit("callback", data.extent);
+  });
+  this.graphicLayers.storesGraphicLayer.on("click", function(evt) {
+    var graphic = evt.graphic;
+    var mapPoint = vue.screenUtils.toMapPoint(
+      map.extent,
+      map.width,
+      map.height,
+      evt.screenPoint
+    );
+    openInfoWindow(map, graphic, evt.screenPoint, mapPoint);
+  });
+}
+function addGraphicLayersEvent(map, graphicLayers) {
+  graphicLayers.storesGraphicLayer.on("mouse-over", function() {
+    map.setMapCursor("pointer");
+  });
+  graphicLayers.storesGraphicLayer.on("mouse-out", function() {
+    map.setMapCursor("default");
+  });
+}
+
+function orderByGraphicLayersByIndex(graphicLayerSetting) {
+  var result = [];
+  for (var prop in graphicLayerSetting) {
+    result.push({
+      name: prop,
+      index: graphicLayerSetting[prop].index
+    });
+  }
+  result.sort(function(a, b) {
+    return a.index - b.index;
+  });
+
+  return result;
+}
+
 function openInfoWindow(map, graphic, screenPoint, mapPoint) {
   var graphicAttributes = graphic.attributes;
   var title = "";
@@ -233,11 +287,10 @@ function getType(amount) {
     return "zero";
   }
 }
-function addPositioningPattern(map, type, center) {
+function addPointGraphic(map, type, center, graphicLayer) {
   const defer = Deferred();
   createPointGraphic(type, center).then(function(graphic) {
-    var graphicsLayer = getGraphicsLayer(type);
-    graphicsLayer.add(graphic);
+    graphicLayer.add(graphic);
     defer.resolve(graphic);
   });
   return defer.promise;
@@ -268,16 +321,6 @@ function createPointGraphic(type, center) {
     });
   return defer.promise;
 }
-function getGraphicsLayer(type) {
-  switch (type) {
-    case "current":
-      return _graphicLayers.currentPositionGraphicLayer;
-      break;
-    default:
-      return _graphicLayers.storesGraphicLayer;
-      break;
-  }
-}
 
 function getSymbolFileName(type) {
   switch (type) {
@@ -304,6 +347,13 @@ function getSymbolFileName(type) {
   width: 100%;
   height: 100%;
 }
+.esriPopup .esriPopupWrapper {
+  background: #fff;
+  height: 225px;
+}
+.esriPopup .sizer {
+  width: 160px;
+}
 .map-container .esriSimpleSliderTL {
   top: initial;
   left: initial;
@@ -315,20 +365,20 @@ function getSymbolFileName(type) {
   margin: 0;
 }
 .map-container .infoWindow.title {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 900;
   padding-bottom: 10px;
 }
 .map-container .infoWindow.content {
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 10px;
+  line-height: 20px;
 }
 .esriPopup .titlePane {
   background-color: #f7f7f7;
   color: #555;
 }
 .esriPopup .contentPane {
-  padding: 10px 18px 24px 18px;
+  padding: 3px 10px 20px 15px;
   box-sizing: border-box;
 }
 .esriPopup .titleButton {
@@ -351,19 +401,50 @@ function getSymbolFileName(type) {
 }
 
 .map-container .mask-container .update {
-  font-size: 10px;
+  font-size: 8px;
   position: absolute;
-  bottom: -10px;
+  bottom: -20px;
   right: 0;
 }
-@media screen and (min-width: 768px) {
+.LocateButton .zoomLocateButton {
+  position: absolute;
+  right: 20px;
+  bottom: 95px;
+  z-index: 3;
+}
+.map-container .map .back.icon {
+  display: inline-block;
+  position: absolute;
+  right: 20px;
+  bottom: 95px;
+  z-index: 3;
+  background-color: #fff;
+  border-radius: 50%;
+  padding: 7px;
+  border: 1.5px solid #888;
+}
+@media screen and (min-width: 1024px) {
   /*電腦版*/
-  .map-container .map {
-    width: 73.5%;
+  .esriPopup .esriPopupWrapper {
+    height: inherit;
+  }
+  .esriPopup .sizer {
+    z-index: 41;
+    width: 270px;
+  }
+  .esriPopup .contentPane {
+    padding: 10px 18px 24px 18px;
+  }
+  .map-container .infoWindow.content {
+    font-size: 14px;
+    line-height: 24px;
+  }
+  .map-container .infoWindow.title {
+    font-size: 20px;
+  }
+  .map-container .mask-container .update {
+    font-size: 10px;
+    bottom: -10px;
   }
 }
 </style>
-
-function newFunction() {
-  const defer=Deferred();
-}

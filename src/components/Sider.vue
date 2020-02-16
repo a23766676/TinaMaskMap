@@ -4,6 +4,9 @@
       <div class="close" @click="closeSider">✖</div>
       <div class="search">
         <input type="text" v-model="searchValue" placeholder="請輸入坐標或地址" />
+        <div v-if="addressList.length>0">
+          <div class="selectorItem" :key="index" v-for="(index,address) in addressList">{{address.FULL_ADDR}}</div>
+        </div>
         <span class="search-icon">
           <!-- <i class="fa fa-search color_gray"></i> -->
           <font-awesome-icon
@@ -49,7 +52,8 @@ export default {
   data: function() {
     return {
       countValue: this.count,
-      searchValue: ""
+      searchValue: "",
+      addressList:[]
     };
   },
   watch: {},
@@ -67,28 +71,39 @@ export default {
       this.$emit("changeCountAfter", this.countValue);
     },
     clickSearchAdrress: function() {
-      debugger;
       var value = this.searchValue;
       if (isChina(value)) {
         var url =
           "https://www.tgos.tw/TGOS/Web/Address/TGOS_AddressBatchQuery.aspx/QueryAddr?";
         var config = {
-          data: {
-            oAPPId: "QP8t8akpQxtPYZLixwpt96npqVLO46UG/w7P3SrgJwGCkUEdDkPbdw==",
+          params:{
+  oAPPId: "QP8t8akpQxtPYZLixwpt96npqVLO46UG/w7P3SrgJwGCkUEdDkPbdw==",
             oAPIKey:
               "cGEErDNy5yNTw4lb4fzGu/McHxMCS5EctGpg7uDXUFGjmz3K4zulLpOYjnzZgP5b+vnxIpmurxrdDUSVbG5EW6eeHh07xNgNiHEfuZtKjWih08UKZzq+Zf/fssG1IQJHdH9jVgi0lsXW3aDM86QjMPwddvCUTstFOiIPebP2+1Kx0SXmAXXmiAruuhN7xb9wf2IWJ/5iy9+E5ZK2so7BX4+hRv/LU7esyHGOkA35CKAI+ehHQEe0hWRhRj5QQ46a573EyyY8r1GTH2WGBqEV8v2gDw7Spwu0wKKZA60bAy0eETpkGxA1ZZg2eb+E3ToErTuEVo3VXPKl6gJswzOj9IDsteSS80Bj",
               oAddress:value,
               oSRS:'EPSG:4326',
               oFuzzyType:0,
               oResultDataType:'JSON',
-              oReturnMaxCount:5
-
-
+              oFuzzyBuffer:0,
+              oIsOnlyFullMatch:	false,
+              oIsLockCounty:false,
+              oIsLockTown:false,
+              oIsLockVillage:false,
+              oIsLockRoadSection:	false,
+              oIsLockLane:false,
+              oIsLockAlley:false,
+              oIsLockArea:false,
+              oIsSameNumber_SubNumber:true,
+              oCanIgnoreVillage:true,
+              oCanIgnoreNeighborhood:true,
+              oReturnMaxCount:10
+          }
           
-          },
-
         };
-        this.$http.post(url, config).then(function(responese) {debugger});
+        this.$http.post(url, config).then(function(responese) {
+          debugger
+          var data=responese;
+          });
       } else {
         var point = [];
         var latAndLon = value.split(",");

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="color_blue title" @click="clickTitle(store.properties.id)">
+    <div class="color_blue name title" @click="clickTitle(store.properties.id)">
       <font-awesome-icon class="icon" icon="map-marker"></font-awesome-icon>
       {{store.properties.name}}
     </div>
@@ -11,8 +11,9 @@
       <a v-bind:href="phobeNumber">
         <p class="content infoWindow">{{store.properties.phone}}</p>
       </a>
+        <p class="note color_gray" v-if="store.properties.note!='-'">{{store.properties.note}}</p>
     </div>
-    <div class="update color_gray">更新時間：{{store.properties.updated}}</div>
+    <div class="update color_gray note">更新時間：{{store.properties.updated}}</div>
     <div class="mask-container">
       <div class="title color_blue">成人口罩 {{store.properties.mask_adult}}</div>
       <div class="title color_green">兒童口罩 {{store.properties.mask_child}}</div>
@@ -50,12 +51,14 @@ export default {
 .item .title {
   font-size: 20px;
   font-weight: 900;
-  padding-bottom: 8px;
+}
+.item .title.name {
   cursor: pointer;
+  padding-bottom: 8px;
 }
 .item .content {
   font-size: 14px;
-  line-height: 24px;
+  line-height: 22px;
 }
 .item .mask-container {
   position: relative;
@@ -76,7 +79,9 @@ export default {
   border-radius: 20px;
 }
 .item .update {
-  padding-top: 30px;
+  padding-top: 20px;
+}
+.item .note {
   font-size: 10px;
 }
 .item .icon {

@@ -1,10 +1,7 @@
 <template>
   <div class="map" id="map">
     <font-awesome-icon class="color_gray back icon" icon="undo-alt" @click="goBackCurrentPoint"></font-awesome-icon>
-    <div id="LocateButton"></div>
-    <div>
-      <div class></div>
-    </div>
+    <!-- <div id="LocateButton"></div> -->
   </div>
 </template>
 
@@ -238,6 +235,7 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
   var title = "";
   var content =
     '<p class="infoWindow title">' + graphicAttributes.properties.name + "</p>";
+ 
   content +=
     '<a target="_blank" href="https://www.google.com/maps/dir/?api=1&amp;destination=' +
     graphicAttributes.geometry.coordinates[1] +
@@ -255,6 +253,12 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
     '"><p class="content infoWindow">' +
     graphicAttributes.properties.phone +
     "</p></a>";
+         if(graphicAttributes.properties.note != '-'){
+    content +=
+      '<p class="content note infoWindow color_gray">' +
+      graphicAttributes.properties.note +
+      "</p>";
+  }
   content += '<div class="mask-container">';
   content +=
     '<div><p class="title infoWindow color_blue">成人口罩 ' +
@@ -271,6 +275,7 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
       graphicAttributes.properties.updated +
       "</p></div>";
   }
+
   content += "</div>";
   map.infoWindow.setTitle(title);
   map.infoWindow.setContent(content);
@@ -373,6 +378,9 @@ function getSymbolFileName(type) {
   font-size: 10px;
   line-height: 20px;
 }
+.map-container .infoWindow.note{
+  font-size: 8px;
+}
 .esriPopup .titlePane {
   background-color: #f7f7f7;
   color: #555;
@@ -401,7 +409,6 @@ function getSymbolFileName(type) {
 }
 
 .map-container .mask-container .update {
-  font-size: 8px;
   position: absolute;
   bottom: -20px;
   right: 0;
@@ -443,8 +450,11 @@ function getSymbolFileName(type) {
     font-size: 20px;
   }
   .map-container .mask-container .update {
-    font-size: 10px;
     bottom: -10px;
   }
+  .map-container .infoWindow.content {
+    font-size: 10px;
+    line-height: 24px;
+}
 }
 </style>

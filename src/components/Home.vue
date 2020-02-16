@@ -28,6 +28,10 @@ import proj4 from "proj4";
 
 const _searchApiUrl =
   "https://raw.githubusercontent.com/kiang/pharmacies/master/json/points.json";
+// First we get the viewport height and we multiple it by 1% to get a value for a vh unit
+let vh = window.innerHeight * 0.01;
+// Then we set the value in the --vh custom property to the root of the document
+document.documentElement.style.setProperty('--vh', `${vh}px`);
 
 export default {
   name: "Home",
@@ -52,6 +56,8 @@ export default {
       this.$http
         .get(_searchApiUrl)
         .then(function(response) {
+          console.log(response);
+
           vue.stores = filterStores(response.data.features, vue.extent)
             .sort(compare("properties", "mask_adult"))
             .slice(0, value + 1);
@@ -114,7 +120,7 @@ function filterStores(stores, extent) {
   return result;
 }
 function getShowSiderDefault() {
-  if (screen.width > 769) {
+  if (screen.width > 1024) {
     return true;
   } else {
     return false;
@@ -143,6 +149,7 @@ function compare(propertyName1, propertyName2) {
 .map-container {
   width: 100vw;
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
 }
 .map-container .sider,
 .map-container .map {
@@ -175,7 +182,7 @@ function compare(propertyName1, propertyName2) {
   }
   .map-container .map {
     width: 73.5%;
-    min-width: callback(100% - 400px);
+    min-width: calc(100% - 400px);
   }
 }
 </style>

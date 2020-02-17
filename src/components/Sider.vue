@@ -207,7 +207,11 @@ function isChina(s) {
   padding-left: 15px;
 }
 .sider .count select {
+  background-color: #fff;
+  border: 1px solid #668afe;
+  line-height: 30px;
   border-radius: 20px;
+  color: #777;
   padding: 3px 0 3px 15px;
 }
 /* .sider .search input::placeholder {

@@ -25,4 +25,7 @@ export default {
 .color_green {
   color: #78d5d7;
 }
+  button,input,select,textarea{
+    -webkit-appearance:none;
+  }
 </style>

@@ -184,8 +184,5 @@ function compare(propertyName1, propertyName2) {
     width: 73.5%;
     min-width: calc(100% - 400px);
   }
-  button,input,select,textarea{
-    -webkit-appearance:none;
-  }
 }
 </style>

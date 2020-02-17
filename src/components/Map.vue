@@ -1,7 +1,33 @@
 <template>
   <div class="map" id="map">
-    <font-awesome-icon class="color_gray back icon" icon="undo-alt" @click="goBackCurrentPoint"></font-awesome-icon>
+    <font-awesome-icon class="color_gray back icon" icon="undo-alt" @click="goBackCurrentPoint" title="回到現在位置"></font-awesome-icon>
     <!-- <div id="LocateButton"></div> -->
+    <div class="legend color_gray">
+      <div class="legend-item">
+        <span class="legend-icon">
+          <img src="../assets/images/map-marker-zero.svg" alt="數量0" />
+        </span>0~29個
+      </div>
+      <div class="legend-item">
+        <span class="legend-icon">
+          <img src="../assets/images/map-marker-less.svg" alt="數量0" />
+        </span>30~49個
+      </div>
+      <div class="legend-item">
+        <span class="legend-icon">
+          <img src="../assets/images/map-marker-soso.svg" alt="數量0" />
+        </span>50~99個
+      </div>
+      <div class="legend-item">
+        <span class="legend-icon">
+          <img src="../assets/images/map-marker-many.svg" alt="數量0" />
+        </span>100個以上
+      </div>
+    </div>
+    <div class="info-container">
+    <font-awesome-icon class="color_gray info-icon" title="口罩實名制說明" icon="exclamation" @mouseover="showInfo=true" @mouseout="showInfo=false" ></font-awesome-icon>
+    <div v-if="showInfo" class="info-picture"><img src="../assets/images/info.png"   alt="口罩實名制說明"></div>
+    </div>
   </div>
 </template>
 
@@ -13,6 +39,7 @@ const _symbolFile = {
   currentPosition: "map-marker-current.svg",
   stores: {
     many: "map-marker-many.svg",
+    soso: "map-marker-soso.svg",
     less: "map-marker-less.svg",
     zero: "map-marker-zero.svg"
   }
@@ -28,24 +55,28 @@ var _graphicLayerSetting = {
   }
 };
 export default {
-  props: ["stores", "storeId", "searchPoint"],
+  props: ["stores", "storeId", "searchPoint", "count"],
   data: () => {
     return {
       graphics: [],
       map: null,
       screenUtils: null,
-      graphicLayers: null
+      graphicLayers: null,
+      showInfo:false
     };
   },
   watch: {
+    count: function() {
+      this.map.infoWindow.hide();
+    },
     searchPoint: function(point) {
       if (point[0] && point[1]) {
         var graphicLayer = this.graphicLayers.currentPositionGraphicLayer;
         graphicLayer.clear();
         addPointGraphic(this.map, "current", point, graphicLayer);
         this.map.centerAndZoom(point, 17);
-      }else{
-        alert('很抱歉，我們搜尋不到相關資料！');
+      } else {
+        alert("很抱歉，我們搜尋不到相關資料！");
       }
     },
     storeId: function(id) {
@@ -80,7 +111,6 @@ export default {
       });
     }
   },
-  methods: {},
   created() {
     esriLoader
       .loadModules(
@@ -123,6 +153,7 @@ export default {
   },
   mounted() {},
   methods: {
+    // showInfo: showInfo,
     getType: getType,
     addPointGraphic: addPointGraphic,
     addCurrentPoint: addCurrentPoint,
@@ -235,7 +266,7 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
   var title = "";
   var content =
     '<p class="infoWindow title">' + graphicAttributes.properties.name + "</p>";
- 
+
   content +=
     '<a target="_blank" href="https://www.google.com/maps/dir/?api=1&amp;destination=' +
     graphicAttributes.geometry.coordinates[1] +
@@ -243,7 +274,7 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
     graphicAttributes.geometry.coordinates[0] +
     '"><p class="content infoWindow">' +
     graphicAttributes.properties.address +
-    "</p></a>";
+    "<span class='location-icon'></span></p></a>";
   var phoneString = graphicAttributes.properties.phone.split("-");
   var phone =
     "tel:+886-" + phoneString[0].replace("0", "") + "-" + phoneString[1];
@@ -252,8 +283,8 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
     phone +
     '"><p class="content infoWindow">' +
     graphicAttributes.properties.phone +
-    "</p></a>";
-         if(graphicAttributes.properties.note != '-'){
+    "<span class='phone-icon'></span></p></a>";
+  if (graphicAttributes.properties.note != "-") {
     content +=
       '<p class="content note infoWindow color_gray">' +
       graphicAttributes.properties.note +
@@ -283,10 +314,14 @@ function openInfoWindow(map, graphic, screenPoint, mapPoint) {
 
   map.centerAt(mapPoint);
 }
+function showInfo() {
+}
 function getType(amount) {
   if (amount >= 100) {
     return "many";
-  } else if (amount > 0) {
+  } else if (amount >= 50) {
+    return "soso";
+  } else if (amount >= 30) {
     return "less";
   } else {
     return "zero";
@@ -335,6 +370,9 @@ function getSymbolFileName(type) {
     case "many":
       return _symbolFile.stores.many;
       break;
+    case "soso":
+      return _symbolFile.stores.soso;
+      break;
     case "less":
       return _symbolFile.stores.less;
       break;
@@ -351,13 +389,15 @@ function getSymbolFileName(type) {
 .map {
   width: 100%;
   height: 100%;
+  position: relative;
 }
 .esriPopup .esriPopupWrapper {
-  background: #fff;
+ background-color: #F7F7F7;
   height: 225px;
 }
 .esriPopup .sizer {
   width: 160px;
+  background: #F7F7F7;
 }
 .map-container .esriSimpleSliderTL {
   top: initial;
@@ -375,10 +415,11 @@ function getSymbolFileName(type) {
   padding-bottom: 10px;
 }
 .map-container .infoWindow.content {
+  position: relative;
   font-size: 10px;
   line-height: 20px;
 }
-.map-container .infoWindow.note{
+.map-container .infoWindow.note {
   font-size: 8px;
 }
 .esriPopup .titlePane {
@@ -402,7 +443,21 @@ function getSymbolFileName(type) {
 .esriPopup .titleButton.maximize {
   display: none;
 }
-
+.content.infoWindow .location-icon,.content.infoWindow .phone-icon{
+  position: absolute;
+  top:50%;
+  transform: translateY(-50%);
+  right: 30px;
+  width: 16px;
+  height: 16px;
+  display: none;
+}
+.content.infoWindow .location-icon{
+  background: url(../assets/images/location-arrow.svg) no-repeat;
+}
+.content.infoWindow .phone-icon{
+  background: url(../assets/images/phone.svg) no-repeat;
+}
 .map-container .mask-container {
   position: relative;
   margin-top: 30px;
@@ -430,6 +485,64 @@ function getSymbolFileName(type) {
   padding: 7px;
   border: 1.5px solid #888;
 }
+.legend {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  z-index: 10;
+  background-color: #fff;
+  font-size: 14px;
+  border: 1.5px solid #bbb;
+  padding: 8px 13px;
+}
+.legend-item {
+  margin: 3px 0;
+}
+.legend-icon {
+  display: inline-block;
+  width: 20px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.info-container {
+  position: absolute;
+  bottom: 206px;
+  left: 20px;
+  z-index: 10;
+
+  display: none;
+}
+.info-picture{
+  position: absolute;
+ left: 100%;
+    bottom:0;
+    border: 1.5px solid #bbb;
+    padding: 5px;
+    background: #fff;
+    margin-left: 15px;
+}
+.info-picture::before{
+width: 0;
+height: 0;
+border-style: solid;
+border-width: 10px 15px 10px 0;
+border-color: transparent #bbb transparent transparent;
+content:'';
+display: inline-block;
+position: absolute;
+bottom: 2px;
+left: -15px;
+}
+.info-picture img{
+  width:400px ;
+}
+.map-container .map .info-icon {
+  cursor: pointer;
+    border: 1.5px solid #bbb;
+  border-radius: 50%;
+  width: 17px;
+  padding: 4px;
+}
 @media screen and (min-width: 1024px) {
   /*電腦版*/
   .esriPopup .esriPopupWrapper {
@@ -455,6 +568,18 @@ function getSymbolFileName(type) {
   .map-container .infoWindow.content {
     font-size: 10px;
     line-height: 24px;
+  }
+  .map-container .info-container {
+    display: inline-block;
+  }
+  .content.infoWindow .location-icon,.content.infoWindow .phone-icon{
+  display: block;
+}
+.legend {
+  font-size: 16px;
+}
+.legend-icon {
+  width: 24px;
 }
 }
 </style>

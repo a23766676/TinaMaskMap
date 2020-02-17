@@ -2,13 +2,19 @@
   <div class="sider" v-show="shouldRender">
     <div class="header">
       <div class="close" @click="closeSider">✖</div>
+      <div class="description">
+        今天
+        <span class="title">星期{{dayList[week]}}</span>，
+        <span v-if="week===0">不限身份證字號購買</span>
+        <span v-else>
+          為
+          <span class="title">{{buyDay}}</span>
+          購買日
+        </span>
+      </div>
       <div class="search">
-        <input type="text" v-model="searchValue" placeholder="請輸入坐標或地址" />
-        <div v-if="addressList.length>0">
-          <div class="selectorItem" :key="index" v-for="(index,address) in addressList">{{address.FULL_ADDR}}</div>
-        </div>
+        <input type="text" v-model="searchValue" placeholder="請輸入坐標" />
         <span class="search-icon">
-          <!-- <i class="fa fa-search color_gray"></i> -->
           <font-awesome-icon
             class="color_gray icon"
             icon="search"
@@ -18,21 +24,22 @@
         </span>
       </div>
       <div class="count">
-        <span>最多顯示</span>
+        <span>顯示成人口罩</span>
         <select v-model="countValue" @change="changeCount">
-          <option value="10">10</option>
-          <option value="30">30</option>
-          <option value="50">50</option>
-          <option value="100">100</option>
+          <option value="0">0個以上</option>
+          <option value="30">30個以上</option>
+          <option value="50">50個以上</option>
+          <option value="100">100個以上</option>
         </select>
-        <span>個</span>
+        <span>的店家</span>
       </div>
     </div>
 
-    <div class="item-container">
+    <div class="item-container" v-if="stores">
       <div class="item" :key="store.properties.id" v-for="store in stores">
         <v-Item v-bind:store="store" @clickStoreNameAfter="handleItemCallback"></v-Item>
       </div>
+      <div v-if="stores.length==0" class="no-item color_gray">查無店家</div>
     </div>
     <div class="note color_gray">
       <p>
@@ -53,8 +60,29 @@ export default {
     return {
       countValue: this.count,
       searchValue: "",
-      addressList:[]
+      addressList: [],
+      dayList: ["日", "一", "二", "三", "四", "五", "六"]
     };
+  },
+  computed: {
+    week: function() {
+      var week = new Date().getDay();
+      return week;
+    },
+    buyDay: function() {
+      switch (this.week) {
+        case 1:
+        case 3:
+        case 5:
+          return "奇數";
+          break;
+        case 2:
+        case 4:
+        case 6:
+          return "偶數";
+          break;
+      }
+    }
   },
   watch: {},
   components: {
@@ -73,37 +101,42 @@ export default {
     clickSearchAdrress: function() {
       var value = this.searchValue;
       if (isChina(value)) {
-        var url =
-          "https://www.tgos.tw/TGOS/Web/Address/TGOS_AddressBatchQuery.aspx/QueryAddr?";
-        var config = {
-          params:{
-  oAPPId: "QP8t8akpQxtPYZLixwpt96npqVLO46UG/w7P3SrgJwGCkUEdDkPbdw==",
-            oAPIKey:
-              "cGEErDNy5yNTw4lb4fzGu/McHxMCS5EctGpg7uDXUFGjmz3K4zulLpOYjnzZgP5b+vnxIpmurxrdDUSVbG5EW6eeHh07xNgNiHEfuZtKjWih08UKZzq+Zf/fssG1IQJHdH9jVgi0lsXW3aDM86QjMPwddvCUTstFOiIPebP2+1Kx0SXmAXXmiAruuhN7xb9wf2IWJ/5iy9+E5ZK2so7BX4+hRv/LU7esyHGOkA35CKAI+ehHQEe0hWRhRj5QQ46a573EyyY8r1GTH2WGBqEV8v2gDw7Spwu0wKKZA60bAy0eETpkGxA1ZZg2eb+E3ToErTuEVo3VXPKl6gJswzOj9IDsteSS80Bj",
-              oAddress:value,
-              oSRS:'EPSG:4326',
-              oFuzzyType:0,
-              oResultDataType:'JSON',
-              oFuzzyBuffer:0,
-              oIsOnlyFullMatch:	false,
-              oIsLockCounty:false,
-              oIsLockTown:false,
-              oIsLockVillage:false,
-              oIsLockRoadSection:	false,
-              oIsLockLane:false,
-              oIsLockAlley:false,
-              oIsLockArea:false,
-              oIsSameNumber_SubNumber:true,
-              oCanIgnoreVillage:true,
-              oCanIgnoreNeighborhood:true,
-              oReturnMaxCount:10
-          }
-          
-        };
-        this.$http.post(url, config).then(function(responese) {
-          debugger
-          var data=responese;
-          });
+        // var url ="https://restapi.amap.com/v3/geocode/geo";
+        // var data = {params:{
+        // address:value,
+        //  key:'AIzaSyAlvlSW8Q8HCY4lGvzqeAmdNn1HeiYjkeI'
+        // }};
+        // this.$http.get(url,data)
+        //   .then(function(responese) {
+        //     var data = responese.data.result;
+        //     if(data.length>0){
+
+        //     }
+        //   })
+        //   .catch(function(error) {
+        //     console.log(error);
+        //   });
+        // var geocoder = new google.maps.Geocoder();
+        // geocoder.geocode({ address: value }, function(results, status) {
+        //   debugger
+        //   if (status == google.maps.GeocoderStatus.OK) {
+        //     map.setCenter(results[0].geometry.location);
+
+        //     document.getElementById(
+        //       "lat"
+        //     ).value = results[0].geometry.location.lat();
+        //     document.getElementById(
+        //       "lng"
+        //     ).value = results[0].geometry.location.lng();
+        //     var marker = new google.maps.Marker({
+        //       map: map,
+        //       position: results[0].geometry.location
+        //     });
+
+        //   } else {
+        //     alert("失敗, 原因: " + status);
+        //   }
+        // });
       } else {
         var point = [];
         var latAndLon = value.split(",");
@@ -145,6 +178,14 @@ function isChina(s) {
   color: #fff;
   z-index: 1;
   right: 20px;
+}
+.sider .description {
+  color: #fff;
+  padding: 0 0 15px 10px;
+}
+.sider .description .title {
+  font-size: 24px;
+  font-weight: 900;
 }
 .sider .header {
   padding: 15px 0;
@@ -208,11 +249,15 @@ function isChina(s) {
 .sider .item-container {
   overflow-y: auto;
   margin: 10px 0px 20px 10px;
-  height: calc(100vh - 230px);
+  height: calc(var(--vh, 1vh) * 100 - 265px);
 }
 .item-container .item {
   position: relative;
   padding: 12px;
+}
+.no-item {
+  text-align: center;
+  margin-top: 20px;
 }
 .item-container .item:not(:last-child)::after {
   content: "";
@@ -241,5 +286,8 @@ function isChina(s) {
     transform: translateY(-50%);
     right: 10%;
   }
+  .sider .description .title {
+  font-size: 28px;
+}
 }
 </style>

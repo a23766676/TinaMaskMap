@@ -15,6 +15,7 @@
     <!-- <v-Sider v-model="showSider"></v-Sider> -->
     <v-Map
       @callback="handleMapCallback"
+      :count="count"
       :stores="stores"
       :storeId="storeId"
       :searchPoint="searchPoint"
@@ -43,7 +44,7 @@ export default {
     return {
       showSider: getShowSiderDefault(),
       stores: null,
-      count: 30,
+      count: 0,
       storeId: null,
       extent: null,
       searchPoint:null
@@ -58,9 +59,8 @@ export default {
         .then(function(response) {
           console.log(response);
 
-          vue.stores = filterStores(response.data.features, vue.extent)
+          vue.stores = filterStores(response.data.features, vue.extent).filter(function(e){return e.properties.mask_adult>=value;})
             .sort(compare("properties", "mask_adult"))
-            .slice(0, value + 1);
         })
         .catch(function(error) {
           // 请求失败处理
@@ -81,9 +81,8 @@ export default {
       this.$http
         .get(_searchApiUrl)
         .then(function(response) {
-          vue.stores = filterStores(response.data.features, value)
+          vue.stores = filterStores(response.data.features, value).filter(function(e){return e.properties.mask_adult>=vue.count ;})
             .sort(compare("properties", "mask_adult"))
-            .slice(0, vue.count + 1);
         })
         .catch(function(error) {
           // 请求失败处理
@@ -172,6 +171,7 @@ function compare(propertyName1, propertyName2) {
 .map-container a {
   text-decoration: none;
 }
+
 @media screen and (min-width: 1024px) {
   /*電腦版*/
   .map-container .sider-icon {
@@ -183,6 +183,9 @@ function compare(propertyName1, propertyName2) {
   .map-container .map {
     width: 73.5%;
     min-width: calc(100% - 400px);
+  }
+  button,input,select,textarea{
+    -webkit-appearance:none;
   }
 }
 </style>

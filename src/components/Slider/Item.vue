@@ -6,12 +6,12 @@
     </div>
     <div class="content">
       <a target="_blank" v-bind:href="url">
-        <p class="content infoWindow">{{store.properties.address}}</p>
+        <p class="content infoWindow">{{store.properties.address}}<span class="location-icon"></span>  </p>
       </a>
       <a v-bind:href="phobeNumber">
-        <p class="content infoWindow">{{store.properties.phone}}</p>
+        <p class="content infoWindow">{{store.properties.phone}}<span class="phone-icon"></span></p>
       </a>
-        <p class="note color_gray" v-if="store.properties.note!='-'">{{store.properties.note}}</p>
+        <span class="note color_gray" v-if="store.properties.note!='-'">{{store.properties.note}}</span>
     </div>
     <div class="update color_gray note">更新時間：{{store.properties.updated}}</div>
     <div class="mask-container">
